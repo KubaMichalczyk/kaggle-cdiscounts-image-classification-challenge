@@ -1,0 +1,1 @@
+Default directory to save input files. You can download them [here](https://www.kaggle.com/c/cdiscount-image-classification-challenge/data).
