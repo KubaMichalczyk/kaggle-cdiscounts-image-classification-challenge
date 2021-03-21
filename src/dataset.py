@@ -6,6 +6,7 @@ import cv2
 import torch
 
 from tqdm import tqdm
+from sklearn.preprocessing import LabelEncoder
 
 class CDiscountDataset:
     
@@ -16,18 +17,23 @@ class CDiscountDataset:
         self.resize = resize
         self.augmentations = augmentations
         self.metadata = None
+        self.category_id_encoder = None
         self.image_id = image_id
         self.random = random
         
         if metadata_file is not None:
             self.metadata = pd.read_csv(metadata_file)
         else:
-            plt.imshow(f"Dataset metadata is being extracted from {self.input_path}, this may take several minutes.")
+            print(f"Dataset metadata is being extracted from {self.input_path}, this may take several minutes.")
             self.extract_metadata()
         
         if items is None:
             self.items = self.metadata.index
 
+        if self.category_id_encoder is None:
+            category_ids = self.metadata['category_id'].unique()
+            self.category_id_encoder = LabelEncoder()
+            self.category_id_encoder.fit(category_ids)
 
     def extract_metadata(self, num_items=None):
         """Source: https://www.kaggle.com/vfdev5/random-item-access"""
@@ -90,11 +96,12 @@ class CDiscountDataset:
         image_bytes = item_decoded['imgs'][selected]['picture']
         
         image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), 
-                            cv2.IMREAD_COLOR)
+                             cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+        image = cv2.normalize(image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         
         if self.resize is not None:
-            image = cv2.resize(image, dim=self.resize)
+            image = cv2.resize(image, dsize=self.resize)
         
         if self.augmentations is not None:
             augmented = self.augmentations(image=image)
@@ -103,8 +110,8 @@ class CDiscountDataset:
         # Torch expects channels first
         image = np.transpose(image, (2, 0, 1)).astype(np.float32)
 
-        target = item_decoded['category_id']
-        
+        target = self.category_id_encoder.transform([item_decoded['category_id']])[0]
+
         return (
             torch.tensor(image, dtype=torch.float),
             torch.tensor(target, dtype=torch.long),
