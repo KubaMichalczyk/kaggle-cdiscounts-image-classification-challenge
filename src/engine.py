@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 
 from tqdm import tqdm
 
@@ -29,17 +28,17 @@ def evaluate(data_loader, model, device):
     final_outputs = []
 
     with torch.no_grad():
-        for images, targets in data_loader:
+        for images, targets in tqdm(data_loader):
 
             images = images.to(device, dtype=torch.float)
             targets = targets.to(device, dtype=torch.long)
 
             outputs = model(images)
 
-            targets = targets.detach().cpu().numpy()
-            outputs = outputs.detach().cpu().numpy()
+            targets = targets.detach().cpu()
+            outputs = outputs.detach().cpu()
 
             final_targets.append(targets)
             final_outputs.append(outputs)
 
-    return np.concatenate(final_targets), np.concatenate(final_outputs)
+    return torch.cat(final_targets), torch.cat(final_outputs)

@@ -4,3 +4,5 @@ src/__pycache__/*
 notebooks/*
 input/*
 !input/README.md
+runs/*
+notes.md

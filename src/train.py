@@ -1,7 +1,9 @@
 import os
-import numpy as np
+from datetime import datetime
 import pandas as pd
 import torch
+import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
@@ -9,11 +11,21 @@ import dataset
 import engine
 from model import get_model
 
+class RunBuilder:
+    pass
+
+class RunManager:
+    pass
+
 if __name__ == '__main__':
 
     INPUT_PATH = os.path.join('..', 'input')
     DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    N_EPOCHS = 2
+    print(f"device={DEVICE}")
+
+    N_EPOCHS = 5
+    BATCH_SIZE = 32
+    LR = 5e-4
 
     category_names_df = pd.read_csv(os.path.join(INPUT_PATH, 'category_names.csv'))
     try:
@@ -37,19 +49,37 @@ if __name__ == '__main__':
                                              items=train_items,
                                              metadata_file=os.path.join(INPUT_PATH, 'metadata_train.csv'),
                                              random=True)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
     valid_dataset = dataset.CDiscountDataset(input_path=os.path.join(INPUT_PATH, 'train.bson'),
                                              items=valid_items,
                                              metadata_file=os.path.join(INPUT_PATH, 'metadata_train.csv'),
                                              random=True)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=16, shuffle=True, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
+    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+    comment = f"_model={model.__name__}_batch_size={BATCH_SIZE}_lr={LR}"
+    tb = SummaryWriter(log_dir=os.path.join('..', 'runs', current_time + comment))
+    sample_images = torch.rand((BATCH_SIZE, *train_dataset[0][0].shape), device=DEVICE)
+    tb.add_graph(model, sample_images)
     for epoch in range(N_EPOCHS):
+
         engine.train(train_loader, model, optimizer, device=DEVICE)
+        targets, probabilities = engine.evaluate(train_loader, model, device=DEVICE)
+        predictions = torch.argmax(probabilities, dim=1)
+        accuracy = accuracy_score(targets, predictions)
+        print(f"Epoch={epoch}, accuracy score on train set={accuracy}")
+        tb.add_scalar("Training accuracy", accuracy, epoch)
+        loss = F.cross_entropy(probabilities, targets)
+        tb.add_scalar("Training loss", loss, epoch)
+
         targets, probabilities = engine.evaluate(valid_loader, model, device=DEVICE)
-        predictions = np.argmax(probabilities, axis=1)
+        predictions = torch.argmax(probabilities, dim=1)
         accuracy = accuracy_score(targets, predictions)
         print(f"Epoch={epoch}, accuracy score on validation set={accuracy}")
+        tb.add_scalar("Validation accuracy", accuracy, epoch)
+        loss = F.cross_entropy(probabilities, targets)
+        tb.add_scalar("Validation loss", loss, epoch)
+    tb.close()
