@@ -1,4 +1,5 @@
 import os
+import copy
 from datetime import datetime
 import pandas as pd
 import torch
@@ -20,13 +21,6 @@ class RunManager:
 
 if __name__ == '__main__':
 
-    DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(f"device={DEVICE}")
-
-    N_EPOCHS = 5
-    BATCH_SIZE = 32
-    LR = 5e-4
-
     category_names_df = pd.read_csv(os.path.join(config.INPUT_PATH, 'category_names.csv'))
     try:
         metadata = pd.read_csv(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
@@ -39,35 +33,39 @@ if __name__ == '__main__':
     targets = metadata['category_id'].values
 
     model = get_model(pretrained=True)
-    model.to(DEVICE)
+    model.to(config.DEVICE)
 
     train_items, valid_items, train_targets, valid_targets = train_test_split(
-        items, targets, stratify=targets, random_state=42
+        items, targets, stratify=targets, test_size=0.1, random_state=42
     )
 
     train_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=train_items,
                                              metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
                                              random=True)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=1)
 
     valid_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=valid_items,
                                              metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
                                              random=True)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=1)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    comment = f"_model={model.__name__}_batch_size={BATCH_SIZE}_lr={LR}"
+    comment = f"_model={model.__name__}_batch_size={config.BATCH_SIZE}_lr={config.LR}"
     tb = SummaryWriter(log_dir=os.path.join(config.LOG_PATH, current_time + comment))
-    sample_images = torch.rand((BATCH_SIZE, *train_dataset[0][0].shape), device=DEVICE)
+    sample_images = torch.rand((config.BATCH_SIZE, *train_dataset[0][0].shape), device=config.DEVICE)
     tb.add_graph(model, sample_images)
-    for epoch in range(N_EPOCHS):
 
-        engine.train(train_loader, model, optimizer, device=DEVICE)
-        targets, probabilities = engine.evaluate(train_loader, model, device=DEVICE)
+    best_model_wts = None
+    best_accuracy = 0.0
+
+    for epoch in range(config.N_EPOCHS):
+
+        engine.train(train_loader, model, optimizer, device=config.DEVICE)
+        targets, probabilities = engine.evaluate(train_loader, model, device=config.DEVICE)
         predictions = torch.argmax(probabilities, dim=1)
         accuracy = accuracy_score(targets, predictions)
         print(f"Epoch={epoch}, accuracy score on train set={accuracy}")
@@ -75,11 +73,18 @@ if __name__ == '__main__':
         loss = F.cross_entropy(probabilities, targets)
         tb.add_scalar("Training loss", loss, epoch)
 
-        targets, probabilities = engine.evaluate(valid_loader, model, device=DEVICE)
+        targets, probabilities = engine.evaluate(valid_loader, model, device=config.DEVICE)
         predictions = torch.argmax(probabilities, dim=1)
         accuracy = accuracy_score(targets, predictions)
         print(f"Epoch={epoch}, accuracy score on validation set={accuracy}")
         tb.add_scalar("Validation accuracy", accuracy, epoch)
         loss = F.cross_entropy(probabilities, targets)
         tb.add_scalar("Validation loss", loss, epoch)
+
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best_model_wts = copy.deepcopy(model.state_dict())
     tb.close()
+
+    model.load_state_dict(best_model_wts)
+    torch.save(model, os.path.join(config.MODELS_PATH, current_time + comment + '.th'))
