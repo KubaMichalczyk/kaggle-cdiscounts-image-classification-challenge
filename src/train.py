@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
+import config
 import dataset
 import engine
 from model import get_model
@@ -19,7 +20,6 @@ class RunManager:
 
 if __name__ == '__main__':
 
-    INPUT_PATH = os.path.join('..', 'input')
     DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f"device={DEVICE}")
 
@@ -27,12 +27,12 @@ if __name__ == '__main__':
     BATCH_SIZE = 32
     LR = 5e-4
 
-    category_names_df = pd.read_csv(os.path.join(INPUT_PATH, 'category_names.csv'))
+    category_names_df = pd.read_csv(os.path.join(config.INPUT_PATH, 'category_names.csv'))
     try:
-        metadata = pd.read_csv(os.path.join(INPUT_PATH, 'metadata_train.csv'))
+        metadata = pd.read_csv(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
     except FileNotFoundError:
-        meta_dataset = dataset.CDiscountDataset(input_path=os.path.join(INPUT_PATH, 'train.bson'))
-        meta_dataset.save_metadata(os.path.join(INPUT_PATH, 'metadata_train.csv'))
+        meta_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'))
+        meta_dataset.save_metadata(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
         metadata = meta_dataset.metadata
 
     items = metadata.index.tolist()
@@ -45,15 +45,15 @@ if __name__ == '__main__':
         items, targets, stratify=targets, random_state=42
     )
 
-    train_dataset = dataset.CDiscountDataset(input_path=os.path.join(INPUT_PATH, 'train.bson'),
+    train_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=train_items,
-                                             metadata_file=os.path.join(INPUT_PATH, 'metadata_train.csv'),
+                                             metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
                                              random=True)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
-    valid_dataset = dataset.CDiscountDataset(input_path=os.path.join(INPUT_PATH, 'train.bson'),
+    valid_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=valid_items,
-                                             metadata_file=os.path.join(INPUT_PATH, 'metadata_train.csv'),
+                                             metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
                                              random=True)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     comment = f"_model={model.__name__}_batch_size={BATCH_SIZE}_lr={LR}"
-    tb = SummaryWriter(log_dir=os.path.join('..', 'runs', current_time + comment))
+    tb = SummaryWriter(log_dir=os.path.join(config.LOG_PATH, current_time + comment))
     sample_images = torch.rand((BATCH_SIZE, *train_dataset[0][0].shape), device=DEVICE)
     tb.add_graph(model, sample_images)
     for epoch in range(N_EPOCHS):

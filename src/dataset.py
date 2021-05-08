@@ -5,9 +5,10 @@ import pandas as pd
 import numpy as np
 import cv2
 import torch
-
 from tqdm import tqdm
 from sklearn.preprocessing import LabelEncoder
+
+import config
 
 class CDiscountDataset:
 
@@ -120,8 +121,7 @@ class CDiscountDataset:
 
 if __name__ == "__main__":
 
-    INPUT_PATH = os.path.join('..', 'input')
-    CDiscountDataset(input_path=os.path.join(INPUT_PATH, 'train.bson')) \
-        .save_metadata(os.path.join(INPUT_PATH, 'metadata_train.csv'))
-    CDiscountDataset(input_path=os.path.join(INPUT_PATH, 'test.bson')) \
-        .save_metadata(os.path.join(INPUT_PATH, 'metadata_test.csv'))
+    CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson')) \
+        .save_metadata(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
+    CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'test.bson')) \
+        .save_metadata(os.path.join(config.INPUT_PATH, 'metadata_test.csv'))
