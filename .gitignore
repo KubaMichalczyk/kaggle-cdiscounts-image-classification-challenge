@@ -5,4 +5,6 @@ notebooks/*
 input/*
 !input/README.md
 runs/*
+submissions/*
+models/*
 notes.md
