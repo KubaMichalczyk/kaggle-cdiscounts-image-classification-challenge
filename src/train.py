@@ -1,6 +1,7 @@
 import os
 import copy
 from datetime import datetime
+import argparse
 import pandas as pd
 import torch
 import torch.nn.functional as F
@@ -21,6 +22,10 @@ class RunManager:
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--train_score', action='store_true')
+    args = parser.parse_args()
+
     category_names_df = pd.read_csv(os.path.join(config.INPUT_PATH, 'category_names.csv'))
     try:
         metadata = pd.read_csv(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
@@ -36,8 +41,19 @@ if __name__ == '__main__':
     model.to(config.DEVICE)
 
     train_items, valid_items, train_targets, valid_targets = train_test_split(
-        items, targets, stratify=targets, test_size=0.1, random_state=42
+        items, targets, stratify=targets, test_size=0.2, random_state=42
     )
+
+    if config.SAMPLE:
+        train_items, _, _, _ = train_test_split(
+            train_items, train_targets, stratify=train_targets, train_size=config.SAMPLE, random_state=42
+        )
+        valid_items, _, _, _ = train_test_split(
+            valid_items, valid_targets, stratify=valid_targets, train_size=config.SAMPLE, random_state=42
+        )
+        print(f"Training with sample of {config.SAMPLE}")
+        print("Train set no. of samples:", len(train_items))
+        print("Validation set no. of samples:", len(valid_items))
 
     train_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=train_items,
@@ -65,13 +81,15 @@ if __name__ == '__main__':
     for epoch in range(config.N_EPOCHS):
 
         engine.train(train_loader, model, optimizer, device=config.DEVICE)
-        targets, probabilities = engine.evaluate(train_loader, model, device=config.DEVICE)
-        predictions = torch.argmax(probabilities, dim=1)
-        accuracy = accuracy_score(targets, predictions)
-        print(f"Epoch={epoch}, accuracy score on train set={accuracy}")
-        tb.add_scalar("Training accuracy", accuracy, epoch)
-        loss = F.cross_entropy(probabilities, targets)
-        tb.add_scalar("Training loss", loss, epoch)
+
+        if args.train_score:
+            targets, probabilities = engine.evaluate(train_loader, model, device=config.DEVICE)
+            predictions = torch.argmax(probabilities, dim=1)
+            accuracy = accuracy_score(targets, predictions)
+            print(f"Epoch={epoch}, accuracy score on train set={accuracy}")
+            tb.add_scalar("Training accuracy", accuracy, epoch)
+            loss = F.cross_entropy(probabilities, targets)
+            tb.add_scalar("Training loss", loss, epoch)
 
         targets, probabilities = engine.evaluate(valid_loader, model, device=config.DEVICE)
         predictions = torch.argmax(probabilities, dim=1)

@@ -10,7 +10,7 @@ import dataset
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--model_path', action='store', type=str)
     parser.add_argument('-m', '--message', action='store', type=str, default='')
     parser.add_argument('-f', '--force', action='store_true')

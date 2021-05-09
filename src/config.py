@@ -3,6 +3,9 @@ MODELS_PATH = 'models/'
 LOG_PATH = 'runs/'
 SUBMISSIONS_PATH = 'submissions/'
 DEVICE = 'cuda'
-N_EPOCHS = 10
-BATCH_SIZE = 32
-LR = 5e-5
+
+BASE_MODEL = 'ResNet50'
+N_EPOCHS = 5
+BATCH_SIZE = 64
+LR = 1e-5
+SAMPLE = None
