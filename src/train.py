@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 import torch
 import torch.nn.functional as F
+import albumentations
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -40,6 +41,10 @@ if __name__ == '__main__':
     model = get_model(pretrained=True)
     model.to(config.DEVICE)
 
+    augmentations = albumentations.Compose([
+        albumentations.RandomCrop(160, 160, always_apply=True),
+    ])
+
     train_items, valid_items, train_targets, valid_targets = train_test_split(
         items, targets, stratify=targets, test_size=0.2, random_state=42
     )
@@ -58,12 +63,14 @@ if __name__ == '__main__':
     train_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=train_items,
                                              metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
+                                             augmentations=augmentations,
                                              random=True)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=1)
 
     valid_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=valid_items,
                                              metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
+                                             augmentations=augmentations,
                                              random=True)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=1)
 
