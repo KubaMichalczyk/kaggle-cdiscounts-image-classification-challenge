@@ -75,6 +75,7 @@ if __name__ == '__main__':
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=1)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
 
     current_time = datetime.now().strftime('%b%d_%H-%M-%S')
     comment = f"_model={model.__name__}_batch_size={config.BATCH_SIZE}_lr={config.LR}"
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
     for epoch in range(config.N_EPOCHS):
 
-        engine.train(train_loader, model, optimizer, device=config.DEVICE)
+        engine.train(train_loader, model, optimizer, lr_scheduler, device=config.DEVICE)
 
         if args.train_score:
             targets, probabilities = engine.evaluate(train_loader, model, device=config.DEVICE)

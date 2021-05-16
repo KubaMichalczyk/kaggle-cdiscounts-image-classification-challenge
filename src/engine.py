@@ -4,7 +4,7 @@ import torch.nn as nn
 from tqdm import tqdm
 
 
-def train(data_loader, model, optimizer, device):
+def train(data_loader, model, optimizer, lr_scheduler, device):
 
     model.train()
 
@@ -18,6 +18,8 @@ def train(data_loader, model, optimizer, device):
         loss = nn.CrossEntropyLoss()(outputs, targets)
         loss.backward()
         optimizer.step()
+
+    lr_scheduler.step()
 
 
 def evaluate(data_loader, model, device):
