@@ -1,4 +1,5 @@
-INPUT_PATH = 'input/'
+INPUT_PATH = '/kaggle/input/cdiscount-image-classification-challenge/'
+METADATA_PATH = '/kaggle/input/cdiscountdatasetmetadata/'
 MODELS_PATH = 'models/'
 LOG_PATH = 'runs/'
 SUBMISSIONS_PATH = 'submissions/'

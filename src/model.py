@@ -31,9 +31,9 @@ def get_model(pretrained):
     model.fc = nn.Sequential(Reshape(),
                              nn.Conv2d(2048, 5270, 1),
                              nn.ReLU(),
+                             Flatten(),
                              nn.Linear(5270, 5270),
                              nn.ReLU(),
-                             Flatten(),
                              nn.Linear(5270, 5270))
 
     return model
