@@ -122,6 +122,6 @@ class CDiscountDataset:
 if __name__ == "__main__":
 
     CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson')) \
-        .save_metadata(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
+        .save_metadata(os.path.join(config.METADATA_PATH, 'metadata_train.csv'))
     CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'test.bson')) \
-        .save_metadata(os.path.join(config.INPUT_PATH, 'metadata_test.csv'))
+        .save_metadata(os.path.join(config.METADATA_PATH, 'metadata_test.csv'))

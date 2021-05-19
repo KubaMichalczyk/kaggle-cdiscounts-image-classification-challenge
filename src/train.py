@@ -29,10 +29,10 @@ if __name__ == '__main__':
 
     category_names_df = pd.read_csv(os.path.join(config.INPUT_PATH, 'category_names.csv'))
     try:
-        metadata = pd.read_csv(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
+        metadata = pd.read_csv(os.path.join(config.METADATA_PATH, 'metadata_train.csv'))
     except FileNotFoundError:
         meta_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'))
-        meta_dataset.save_metadata(os.path.join(config.INPUT_PATH, 'metadata_train.csv'))
+        meta_dataset.save_metadata(os.path.join(config.METADATA_PATH, 'metadata_train.csv'))
         metadata = meta_dataset.metadata
 
     items = metadata.index.tolist()
@@ -62,14 +62,14 @@ if __name__ == '__main__':
 
     train_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=train_items,
-                                             metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
+                                             metadata_file=os.path.join(config.METADATA_PATH, 'metadata_train.csv'),
                                              augmentations=augmentations,
                                              random=True)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=1)
 
     valid_dataset = dataset.CDiscountDataset(input_path=os.path.join(config.INPUT_PATH, 'train.bson'),
                                              items=valid_items,
-                                             metadata_file=os.path.join(config.INPUT_PATH, 'metadata_train.csv'),
+                                             metadata_file=os.path.join(config.METADATA_PATH, 'metadata_train.csv'),
                                              augmentations=augmentations,
                                              random=True)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=1)
