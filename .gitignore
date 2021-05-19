@@ -7,4 +7,6 @@ input/*
 runs/*
 submissions/*
 models/*
+runs/*
+!runs/README.md
 notes.md

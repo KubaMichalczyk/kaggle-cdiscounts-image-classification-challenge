@@ -1,0 +1,10 @@
+numpy==1.20.2
+torch==1.8.1+cu111
+torchvision==0.9.1+cu111
+albumentations==0.5.2
+fastai==2.3.1
+matplotlib==3.4.2
+pandas==1.2.4
+pymongo==3.11.4
+scikit_learn==0.24.2
+tqdm==4.60.0
